@@ -1,12 +1,13 @@
 using UnityEngine;
-
+using TMPro;
 public class buildmanager : MonoBehaviour
 {
     public static buildmanager instance;   
     public GameObject standardTurretPrefab;
     public GameObject missileLauncherPrefab;
     public GameObject artilleryPrefab;
-    
+
+    public TMP_Text turretCountText;
     [Header("Turret Costs")]
     public int standardTurretCost = 30;
     public int missileLauncherCost = 50;
@@ -36,7 +37,12 @@ public class buildmanager : MonoBehaviour
     {
         return turretToBuild;
     }
-    
+    private void UpdateTurretCountUI()
+    {
+        if (turretCountText != null)
+            turretCountText.text = $" {currentTurretCount} / {maxTurrets}";
+    }
+
     public void SetTurretToBuild(GameObject turret)
     {    
         turretToBuild = turret;
@@ -53,7 +59,12 @@ public class buildmanager : MonoBehaviour
         else
             return 0;
     }
-    
+
+    void Start()
+    {
+        UpdateTurretCountUI();
+    }
+
     public bool CanBuildTurret()
     {
         return currentTurretCount < maxTurrets;
@@ -62,12 +73,14 @@ public class buildmanager : MonoBehaviour
     public void OnTurretBuilt()
     {
         currentTurretCount++;
+        UpdateTurretCountUI();
     }
     
     public void OnTurretDestroyed()
     {
         if(currentTurretCount > 0)
             currentTurretCount--;
+        UpdateTurretCountUI();
     }
     
     public int GetCurrentTurretCount()
@@ -90,19 +103,21 @@ public class buildmanager : MonoBehaviour
     // 타워 선택
     public void SelectTurret(Node node)
     {
-        // 이전 선택 해제
-        if(selectedNode != null && selectedNode != node)
-        {
-            // 선택 표시 해제 (필요시)
-        }
-        
+        if (selectedNode != null)
+            selectedNode.SetSelected(false); // 이전 선택 해제
+
         selectedNode = node;
+        selectedNode.SetSelected(true); // 새 선택 노드 
     }
     
     // 선택된 타워 해제
     public void DeselectTurret()
     {
-        selectedNode = null;
+        if (selectedNode != null)
+        {
+            selectedNode.SetSelected(false); // 선택 해제
+            selectedNode = null;
+        }
     }
     
     // 선택된 타워 삭제 (X키로 호출)

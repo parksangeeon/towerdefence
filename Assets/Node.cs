@@ -4,54 +4,69 @@ using UnityEngine.EventSystems;
 public class Node : MonoBehaviour
 {
     public Color hoverColor;
+    public Color selectedColor;
     public Vector3 positionOffset;
+
     private Renderer rend;
     private Color startColor;
+    private bool isSelected = false;   // ➜ 클릭으로 선택 여부 관리
+    public GameObject rangeIndicatorPrefab; // 사거리 원 프리팹
+    private GameObject rangeIndicatorInstance; // 인스턴스
     public GameObject turret;
     buildmanager buildmanager;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+
     void Start()
     {
         rend = GetComponent<Renderer>();
         startColor = rend.material.color;
         buildmanager = buildmanager.instance;
     }
+
     void OnMouseEnter()
     {
         if (EventSystem.current.IsPointerOverGameObject())
             return;
-        if(buildmanager.GetTurretToBuild() == null)
-        {
+
+        // 건설 모드일 때만 호버 색 표시 (원하면 이 부분도 빼도 됨)
+        if (buildmanager.GetTurretToBuild() == null)
             return;
-        }
+
+        // 이미 선택된 노드는 호버 색으로 바꾸지 않음
+        if (isSelected)
+            return;
+
         rend.material.color = hoverColor;
     }
-    void OnMouseExit(){
-        rend.material.color = startColor;
+
+    void OnMouseExit()
+    {
+        // 선택된 상태면 선택 색 유지, 아니면 원래 색
+        rend.material.color = isSelected ? selectedColor : startColor;
     }
-    void OnMouseDown(){
+
+    void OnMouseDown()
+    {
         if (EventSystem.current.IsPointerOverGameObject())
             return;
-            
-        if(buildmanager == null)
+
+        if (buildmanager == null)
         {
             Debug.LogError("BuildManager is null!");
             return;
         }
-        
-        // 타워가 이미 설치되어 있으면 선택만 하기
-        if(turret != null)
+
+        // 1) 이미 타워가 설치되어 있으면 클릭으로 '선택'
+        if (turret != null)
         {
-            // Unity에서 파괴된 오브젝트는 참조가 남아있을 수 있으므로 실제 존재 여부 확인
             try
             {
-                if(turret.gameObject == null)
+                if (turret.gameObject == null)
                 {
                     turret = null;
                 }
                 else
                 {
-                    // 타워가 있으면 선택만 하기 (X키로 삭제)
+                    // 여기서만 '선택' 발생
                     buildmanager.SelectTurret(this);
                     Debug.Log("Turret selected! Press X to delete.");
                     return;
@@ -59,98 +74,147 @@ public class Node : MonoBehaviour
             }
             catch
             {
-                // 오브젝트가 파괴된 경우 참조 정리
                 turret = null;
             }
         }
-        
-        // 타워를 설치하려고 할 때
-        if(buildmanager.GetTurretToBuild() == null)
+
+        // 2) 타워 설치 로직은 그대로
+        if (buildmanager.GetTurretToBuild() == null)
         {
             Debug.Log("No turret selected! Please select a turret first.");
             return;
         }
-        
-        // 최대 타워 개수 체크
-        if(!buildmanager.CanBuildTurret())
+
+        if (!buildmanager.CanBuildTurret())
         {
-            Debug.Log("Maximum turret limit reached! (" + buildmanager.GetCurrentTurretCount() + "/" + buildmanager.GetMaxTurrets() + ")");
+            Debug.Log("Maximum turret limit reached! (" +
+                      buildmanager.GetCurrentTurretCount() + "/" +
+                      buildmanager.GetMaxTurrets() + ")");
             return;
         }
-    
+
         GameObject turretToBuild = buildmanager.GetTurretToBuild();
         int turretCost = buildmanager.GetTurretCost(turretToBuild);
-        
-        // 골드 확인 및 소모
-        if(Gold.instance == null)
+
+        if (Gold.instance == null)
         {
             Debug.LogError("Gold instance is null!");
             return;
         }
-        
-        if(!Gold.instance.SpendGold(turretCost))
+
+        if (!Gold.instance.SpendGold(turretCost))
         {
             Debug.Log("Not enough gold to build turret! Need: " + turretCost);
             return;
         }
-        
-        turret = (GameObject)Instantiate(turretToBuild, transform.position + positionOffset, transform.rotation);
-        buildmanager.OnTurretBuilt(); // 타워 개수 증가
-        Debug.Log("Turret built successfully! Gold spent: " + turretCost + " (" + buildmanager.GetCurrentTurretCount() + "/" + buildmanager.GetMaxTurrets() + ")");
-        
-        // 포탑 건설 후 선택 해제 (선택사항)
+
+        turret = (GameObject)Instantiate(
+            turretToBuild,
+            transform.position + positionOffset,
+            transform.rotation
+        );
+
+        buildmanager.OnTurretBuilt();
+        Debug.Log("Turret built successfully! Gold spent: " + turretCost +
+                  " (" + buildmanager.GetCurrentTurretCount() + "/" +
+                  buildmanager.GetMaxTurrets() + ")");
+
         buildmanager.SetTurretToBuild(null);
     }
-    
-    public void SellTurret()
+
+    public void SetSelected(bool isSelected)
     {
-        if(turret == null)
-            return;
-        
-        // 타워 프리팹 찾기 (Turret 컴포넌트가 있다고 가정)
-        // 실제로는 타워 오브젝트에서 어떤 타워인지 확인해야 함
-        // 간단하게 buildmanager의 프리팹들과 비교
-        GameObject turretPrefab = null;
-        if(buildmanager.standardTurretPrefab != null && turret.name.Contains(buildmanager.standardTurretPrefab.name))
+        if (rend == null) return;
+        rend.material.color = isSelected ? selectedColor : startColor;
+
+        // 사거리 표시 관리
+        if (isSelected && turret != null && rangeIndicatorPrefab != null)
         {
-            turretPrefab = buildmanager.standardTurretPrefab;
-        }
-        else if(buildmanager.missileLauncherPrefab != null && turret.name.Contains(buildmanager.missileLauncherPrefab.name))
-        {
-            turretPrefab = buildmanager.missileLauncherPrefab;
-        }
-        else if(buildmanager.artilleryPrefab != null && turret.name.Contains(buildmanager.artilleryPrefab.name))
-        {
-            turretPrefab = buildmanager.artilleryPrefab;
-        }
-        
-        if(turretPrefab != null)
-        {
-            int refund = buildmanager.GetSellRefund(turretPrefab);
-            
-            // 골드 환불
-            if(Gold.instance != null)
+            float range = 0f;
+
+            // Turret 또는 MissileTurret 컴포넌트에서 range 값 가져오기
+            Turret turretComp = turret.GetComponent<Turret>();
+            if (turretComp != null)
             {
-                Gold.instance.AddGold(refund);
+                range = turretComp.range;
             }
-            
-            // 타워 파괴
-            Destroy(turret);
-            turret = null;
-            buildmanager.OnTurretDestroyed(); // 타워 개수 감소
-            buildmanager.DeselectTurret(); // 선택 해제
-            
-            Debug.Log("Turret sold! Refund: " + refund + " (" + buildmanager.GetCurrentTurretCount() + "/" + buildmanager.GetMaxTurrets() + ")");
+            else
+            {
+                MissileTurret missileComp = turret.GetComponent<MissileTurret>();
+                if (missileComp != null)
+                {
+                    range = missileComp.range;
+                }
+            }
+
+            if (range > 0f)
+            {
+                rangeIndicatorInstance = Instantiate(
+                    rangeIndicatorPrefab,
+                    turret.transform.position,
+                    Quaternion.Euler(90f, 0f, 0f), // x축 90도 회전
+                    turret.transform
+                );
+                float scale = range * 2f;
+                rangeIndicatorInstance.transform.localScale = new Vector3(scale, scale, scale);
+            }
         }
         else
         {
-            // 타워 종류를 찾을 수 없으면 그냥 파괴 (환불 없음)
+            if (rangeIndicatorInstance != null)
+            {
+                Destroy(rangeIndicatorInstance);
+                rangeIndicatorInstance = null;
+            }
+        }
+    }
+    public void SellTurret()
+    {
+        if (turret == null)
+            return;
+
+        GameObject turretPrefab = null;
+        if (buildmanager.standardTurretPrefab != null &&
+            turret.name.Contains(buildmanager.standardTurretPrefab.name))
+        {
+            turretPrefab = buildmanager.standardTurretPrefab;
+        }
+        else if (buildmanager.missileLauncherPrefab != null &&
+                 turret.name.Contains(buildmanager.missileLauncherPrefab.name))
+        {
+            turretPrefab = buildmanager.missileLauncherPrefab;
+        }
+        else if (buildmanager.artilleryPrefab != null &&
+                 turret.name.Contains(buildmanager.artilleryPrefab.name))
+        {
+            turretPrefab = buildmanager.artilleryPrefab;
+        }
+
+        if (turretPrefab != null)
+        {
+            int refund = buildmanager.GetSellRefund(turretPrefab);
+
+            if (Gold.instance != null)
+            {
+                Gold.instance.AddGold(refund);
+            }
+
             Destroy(turret);
             turret = null;
             buildmanager.OnTurretDestroyed();
             buildmanager.DeselectTurret(); // 선택 해제
+
+            Debug.Log("Turret sold! Refund: " + refund +
+                      " (" + buildmanager.GetCurrentTurretCount() + "/" +
+                      buildmanager.GetMaxTurrets() + ")");
+        }
+        else
+        {
+            Destroy(turret);
+            turret = null;
+            buildmanager.OnTurretDestroyed();
+            buildmanager.DeselectTurret();
             Debug.Log("Turret removed! (No refund - unknown type)");
         }
     }
 }
-

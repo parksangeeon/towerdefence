@@ -44,20 +44,40 @@ public class WaveSpawner : MonoBehaviour
         // 시작 카운트다운 표시
         StartCoroutine(StartCountdown());
     }
-    
+
     IEnumerator StartCountdown()
     {
-        if(Life.instance != null && Life.instance.gameOverText != null)
+        int currentStage = 0;
+        string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (currentScene.Contains("Stage"))
+        {
+            string stageNum = currentScene.Replace("Stage", "");
+            int.TryParse(stageNum, out currentStage);
+        }
+
+        if (Life.instance != null && Life.instance.gameOverText != null)
         {
             Life.instance.gameOverText.gameObject.SetActive(true);
-            
-            for(int i = (int)startDelay; i > 0; i--)
+
+            if (currentStage == 4)
             {
-                Life.instance.gameOverText.text = "Wave Starting in " + i.ToString() + "...";
+                Life.instance.gameOverText.text = "FINAL STAGE";
                 yield return new WaitForSeconds(1f);
             }
-            
-            Life.instance.gameOverText.text = "Wave 1 Start!";
+            else
+            {
+                Life.instance.gameOverText.text = $"STAGE {currentStage}";
+                yield return new WaitForSeconds(1f);
+            }
+
+            // 3, 2, 1 카운트다운
+            for (int i = 3; i > 0; i--)
+            {
+                Life.instance.gameOverText.text = i.ToString();
+                yield return new WaitForSeconds(1f);
+            }
+
+            Life.instance.gameOverText.text = $"Wave 1 Start!";
             yield return new WaitForSeconds(0.5f);
             Life.instance.gameOverText.gameObject.SetActive(false);
         }
@@ -65,11 +85,11 @@ public class WaveSpawner : MonoBehaviour
         {
             yield return new WaitForSeconds(startDelay);
         }
-        
+
         gameStarted = true;
         countdown = timeBetweenWaves;
     }
-    
+
     private void Update()
     {
         if(!gameStarted)
@@ -132,8 +152,8 @@ public class WaveSpawner : MonoBehaviour
             int.TryParse(stageNum, out currentStage);
         }
         
-        // 3스테이지면 게임 클리어, 아니면 스테이지 클리어
-        if(currentStage == 3)
+        // 4스테이지면 게임 클리어, 아니면 스테이지 클리어
+        if(currentStage == 4)
         {
             // 게임 클리어
             StartCoroutine(GameClear());

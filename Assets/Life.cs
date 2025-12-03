@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Life : MonoBehaviour
 {
@@ -14,7 +15,8 @@ public class Life : MonoBehaviour
     public TMP_Text livesText;
     public TMP_Text gameOverText;
     public GameObject gameOverPanel;
-    
+    public GameObject reButton;
+
     private bool gameOver = false;
     
     void Awake()
@@ -37,6 +39,8 @@ public class Life : MonoBehaviour
             
         if(gameOverPanel != null)
             gameOverPanel.SetActive(false);
+        if (reButton != null)
+            reButton.SetActive(false);
     }
     
     public void LoseLife()
@@ -75,11 +79,16 @@ public class Life : MonoBehaviour
         {
             gameOverPanel.SetActive(true);
         }
-        
+        if (reButton != null)
+            reButton.SetActive(true);
         Debug.Log("Game Over!");
         Time.timeScale = 0f; // 게임 일시정지
     }
-    
+    public void RestartStage()
+    {
+        Time.timeScale = 1f; // 게임 재시작 시 시간 복구
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); // 현재 씬 다시 로드
+    }
     public bool IsGameOver()
     {
         return gameOver;
