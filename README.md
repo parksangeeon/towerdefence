@@ -1,4 +1,4 @@
-# TowerDefence (임시 제목)
+# TowerDefence
 
 > Unity로 제작한 타워 디펜스 게임  
 > 제한된 골드와 포탑 슬롯을 활용해 적 웨이브를 막아내는 전략형 게임 프로젝트입니다.
@@ -177,7 +177,7 @@ https://www.youtube.com/watch?v=beuoNuK2tbk
 
 BGM:https://www.youtube.com/watch?v=V71z8yFKjk4&list=PL22iamDQYGnO5NxZ9vo6SU88yEilFlyMJ&index=2
 
-사용된 에셋: 
+사용된 오픈소스:  UNITY6
 https://assetstore.unity.com/packages/3d/props/weapons/fatty-poly-turret-free-155251
 https://assetstore.unity.com/packages/3d/props/weapons/fatty-poly-turret-part-2-free-159989
 
